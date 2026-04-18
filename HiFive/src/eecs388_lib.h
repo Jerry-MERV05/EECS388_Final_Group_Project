@@ -74,17 +74,6 @@
  *******************************************************************************/
 extern char __buf[80];
 
-// Task 1 & 2 (Our group)
-// led_state type is used to keep track of the current state of the braking system. 
-// It is defined in eecs388_lib.c and declared as extern here so that it can be used in eecs388_final.c
-typedef enum {
-        LED_GREEN,
-        LED_YELLOW,
-        LED_RED,
-        LED_FLASHING_RED
-    } led_state;
-// End of section for Task 1 & 2 (Our group)
-
 void gpio_mode(int gpio, int mode);
 void gpio_write(int gpio, int state);
 

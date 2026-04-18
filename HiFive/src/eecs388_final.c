@@ -18,9 +18,6 @@ char buff[BUFF_SIZE]; // buffer to store the data read from the lidar (LAB 8)
 
 volatile float steering_angle = 0.0; // global variable to store the steering angle
 
-// Task 1 & 2 (Our group)
-// led_state is defined in eecs388_lib.h and is used to keep track of the current state of the braking system.
-extern volatile led_state braking_state;
 //--------------------------
 
 void auto_brake(int devid)
@@ -39,43 +36,36 @@ void auto_brake(int devid)
 
         if (dist > 200) // if dist is greater than 200 make the led green
         {
-            braking_state = LED_GREEN;
+            gpio_write(RED_LED, OFF);
+            gpio_write(GREEN_LED, ON); 
         }
         else if (100 < dist && dist <= 200) // if the distance is between 100 and 200 turn the light yellow
-        {
-            braking_state = LED_YELLOW;
+        {          
+            gpio_write(GREEN_LED, ON);
+            gpio_write(RED_LED, ON);
         }
         else if (60 < dist && dist <= 100) // if the distance is between 60 and 100 turn the light red
-        {
-            braking_state = LED_RED;
+        {           
+            gpio_write(GREEN_LED, OFF);
+            gpio_write(RED_LED, ON);
         }
         else // otherwise flash the red light
-        {
-            braking_state = LED_FLASHING_RED;
+        {           
+            gpio_write(GREEN_LED, OFF);
+            gpio_write(RED_LED, ON);
+            delay(100);
+            gpio_write(RED_LED, OFF);
+            delay(100);
         }
             
     }
+    
 } // check if the lidar is ready to send data
     
 
 int read_from_pi(int devid)
 {
     // Task-3:
-    // You code goes here (Use Lab 09-option1 for reference)
-    // After performing Task-2 at dnn.py code, modify this part to read angle values from Raspberry Pi.
-    
-    /* ---SAFER METHOD ?---
-    if (ser_isready(devid)){
-        steering_angle = ser_readline(devid, BUF_SIZE, buff);
-    }
-
-    float temp = 0.0;
-    sscanf(buff, "%f", &temp); // convert the string read from the Pi to a float
-    steering_angle = temp;
-
-    return (int)steering_angle;
-    */
-
     if (ser_isready(devid)) 
     {
         ser_readline(devid, BUFF_SIZE, buff);
@@ -96,9 +86,8 @@ void steering(int gpio, int pos)
     int pulse = 544 + ((2400 - 544) * pos) / 180;     //converts angle in to pulse
 
     gpio_write(gpio, ON);
-    delay_us(pulse);
+    delay_usec(pulse);
     gpio_write(gpio, OFF);
-    delay_us(20000 - pulse);
 
 }
 
@@ -109,6 +98,7 @@ int main()
     ser_setup(1);            // uart1
     int pi_to_hifive = 1;    // The connection with Pi uses uart 1
     int lidar_to_hifive = 0; // the lidar uses uart 0
+    int runNext = 0;
     
 
     printf("\nUsing UART %d for Pi -> HiFive", pi_to_hifive);
@@ -120,23 +110,8 @@ int main()
     gpio_mode(BLUE_LED, OUTPUT);
     gpio_mode(GREEN_LED, OUTPUT);
 
-    // install timer interrupt handler
-    interrupt_handler[MIE_MTIE_BIT] = timer_handler;
-
-    // write handle_trap address to mtvec
-    register_trap_handler(handle_trap);
-
-    // enable timer interrupt
-    enable_timer_interrupt();
-
-    // enable global interrupt
-    enable_interrupt(); 
-
-    // cause timer interrupt for some time in future 
-    set_cycles( get_cycles() + 40000 );
-
     printf("Setup completed.\n");
-    printf("Begin the main loop.\n");
+    printf("Begin the maiget_cycles();n loop.\n");
 
     while (1)
     {
@@ -145,26 +120,11 @@ int main()
         int angle = read_from_pi(pi_to_hifive); // getting turn direction from pi
         printf("\nangle=%d", angle); 
         int gpio = PIN_19;
-        for (int i = 0; i < 10; i++)
-        {
-            // Here, we set the angle to 180 if the prediction from the DNN is a positive angle
-            // and 0 if the prediction is a negative angle.
-            // This is so that it is easier to see the movement of the servo.
-            // You are welcome to pass the angle values directly to the steering function.
-            // If the servo function is written correctly, it should still work,
-            // only the movements of the servo will be more subtle
-            if (angle > 0)
-            {
-                steering(gpio, 180);
-            }
-            else
-            {
-                steering(gpio, 0);
-            }
 
-            // Uncomment the line below to see the actual angles on the servo.
-            // Remember to comment out the if-else statement above!
-            // steering(gpio, angle);
+        int runNext;
+        if(get_cycles() >= runNext){
+            runNext = get_cycles() + 20000; // run every 100ms
+            steering(gpio, angle);
         }
     }
     return 0;

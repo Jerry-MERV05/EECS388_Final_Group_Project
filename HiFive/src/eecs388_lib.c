@@ -3,8 +3,6 @@
 
 #define MAX_INTERRUPTS 16
 
-volatile led_state braking_state = LED_GREEN; // global variable to store the current state of the braking system
-
 char __buf[80];
 
 void gpio_mode(int gpio, int mode)
@@ -64,93 +62,6 @@ void delay_usec(int usec)
   uint64_t tend; 
   tend = get_cycles() + (uint64_t)usec * 32768 / 1000000;
   while (get_cycles() < tend) {}; 
-}
-
-void (*interrupt_handler[MAX_INTERRUPTS])();
-void (*exception_handler[MAX_INTERRUPTS])();
-void (*plic_handler[MAX_EXT_INTERRUPTS])();
-volatile int intr_count;
-
-void handle_trap(void) __attribute((interrupt));
-void handle_trap()
-{  
-    unsigned long mcause = read_csr(mcause);
-    if (mcause & MCAUSE_INT) {
-        printf("interrupt. cause=%d, count=%d\n", 
-            (int)(mcause & MCAUSE_CAUSE), (int)intr_count++);
-        // mask interrupt bit and branch to handler
-        interrupt_handler[mcause & MCAUSE_CAUSE] ();
-    } else {
-        printf("exception=%d\n", (int)(mcause & MCAUSE_CAUSE));
-        // synchronous exception, branch to handler
-        exception_handler[mcause & MCAUSE_CAUSE]();
-    }
-}
-
-void extint_handler()
-{
-    //get the highest priority pending PLIC interrupt
-    uint32_t int_num = *(volatile uint32_t *)PLIC_CLAIM_ADDR;
-    //branch to handler
-    printf("External interrupt %d occured\n", (int)int_num);
-    plic_handler[int_num]();
-    //complete interrupt by writing interrupt number back to PLIC
-    *(volatile uint32_t *)PLIC_CLAIM_ADDR = int_num;
-}
-void enable_timer_interrupt()
-{
-    write_csr(mie, read_csr(mie) | (1 << MIE_MTIE_BIT));
-}
-
-void enable_external_interrupt()
-{
-    write_csr(mie, read_csr(mie) | (1 << MIE_MEIE_BIT));
-}
-
-void enable_interrupt()
-{
-    write_csr(mstatus, read_csr(mstatus) | (1 << MSTATUS_MIE_BIT));
-}
-
-void disable_interrupt()
-{
-    write_csr(mstatus, read_csr(mstatus) & (~(1 << MSTATUS_MIE_BIT)));
-}
-
-void register_trap_handler(void *func)
-{
-    write_csr(mtvec, ((unsigned long)func));
-}
-
-void timer_handler()
-{
-    intr_count++;
-    set_cycles(get_cycles() + 32768 * 0.1);
-    /* Task 2.3 Increment the interrupt counter variable*/
-    /* Task 2.3 Set the mtimecmpr register to a correct value to 
-       generate an interrupt after 100ms */
-
-    //EECS388 best practice to turn on and off the LEDs in the interrupt handler
-    switch (braking_state) {
-        case LED_GREEN:
-            gpio_write(GREEN_LED, ON);
-            gpio_write(RED_LED, OFF);
-            break;
-        case LED_YELLOW:
-            gpio_write(GREEN_LED, ON);
-            gpio_write(RED_LED, ON);
-            break;
-        case LED_RED:
-            gpio_write(GREEN_LED, OFF);
-            gpio_write(RED_LED, ON);
-            break;
-        case LED_FLASHING_RED:
-            // Flashing red light
-            static int val = 0;
-            val ^= 1; // Toggle between 0 and 1
-            gpio_write(RED_LED, val ? ON : OFF); // Turn on/off the red LED
-            break;
-    }
 }
 
 void ser_setup(int devid)
