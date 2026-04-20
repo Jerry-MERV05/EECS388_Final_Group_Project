@@ -4,19 +4,12 @@
 
 #include "eecs388_lib.h"
 
-/*****NOTE TO OURSELVES*****/
-void handle_trap(void); //compiler needs this declaration to compile the code, but the actual function is defined in eecs388_Lib.c
-//-------------------------
-
-//Array of function points for interrupts and exceptions
-void (*interrupt_handler[MAX_INTERRUPTS])();
-void (*exception_handler[MAX_INTERRUPTS])();
-
 // Task 3 (Our group).
 #define BUFF_SIZE (32)
 char buff[BUFF_SIZE]; // buffer to store the data read from the lidar (LAB 8)
-
 volatile float steering_angle = 0.0; // global variable to store the steering angle
+int led_state = 0;
+int next_toggle = 0;
 
 //--------------------------
 
@@ -49,32 +42,37 @@ void auto_brake(int devid)
             gpio_write(GREEN_LED, OFF);
             gpio_write(RED_LED, ON);
         }
-        else // otherwise flash the red light
-        {           
-            gpio_write(GREEN_LED, OFF);
-            gpio_write(RED_LED, ON);
-            delay(100);
-            gpio_write(RED_LED, OFF);
-            delay(100);
+        else
+        {
+        gpio_write(GREEN_LED, OFF);
+
+        if (get_cycles() >= next_toggle) 
+        {
+            led_state = !led_state;
+            gpio_write(RED_LED, led_state);
+
+            next_toggle = get_cycles() + 2500; 
         }
+        }   
             
     }
     
 } // check if the lidar is ready to send data
     
 
-int read_from_pi(int devid)
+int read_from_pi(int devid, float *angle_out)
 {
-    // Task-3:
     if (ser_isready(devid)) 
     {
         ser_readline(devid, BUFF_SIZE, buff);
-        // convert received string to float
-        sscanf(buff, "%f", &steering_angle);
-    }   
 
-    return (int)steering_angle;
-
+        float temp;
+        if (sscanf(buff, "%f", &temp) == 1) {
+            *angle_out = temp;
+            return 1; // new data
+        }
+    }
+    return 0; // no new data
 }
 
 void steering(int gpio, int pos)
@@ -83,7 +81,7 @@ void steering(int gpio, int pos)
     // Your code goes here (Use Lab 05 for reference)
     // Check the project document to understand the task
 
-    int pulse = 544 + ((2400 - 544) * pos) / 180;     //converts angle in to pulse
+    int pulse = (544 + ((2400 - 544) * pos)) / 180;     //converts angle in to pulse
 
     gpio_write(gpio, ON);
     delay_usec(pulse);
@@ -99,7 +97,7 @@ int main()
     int pi_to_hifive = 1;    // The connection with Pi uses uart 1
     int lidar_to_hifive = 0; // the lidar uses uart 0
     int runNext = 0;
-    
+    int gpio = PIN_19;
 
     printf("\nUsing UART %d for Pi -> HiFive", pi_to_hifive);
     printf("\nUsing UART %d for Lidar -> HiFive", lidar_to_hifive);
@@ -117,11 +115,13 @@ int main()
     {
 
         auto_brake(lidar_to_hifive);            // measuring distance using lidar and braking
-        int angle = read_from_pi(pi_to_hifive); // getting turn direction from pi
-        printf("\nangle=%d", angle); 
-        int gpio = PIN_19;
-
-        int runNext;
+        
+        float angle;
+        if (read_from_pi(pi_to_hifive, &angle)) 
+        {
+            printf("\n>>> NEW angle=%.2f <<<\n", angle);
+        } 
+        
         if(get_cycles() >= runNext){
             runNext = get_cycles() + 20000; // run every 100ms
             steering(gpio, angle);
