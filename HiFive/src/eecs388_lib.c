@@ -3,7 +3,28 @@
 
 #define MAX_INTERRUPTS 16
 
+/*
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                        \|/
+                                                         V
+*/
 volatile led_state braking_state = LED_GREEN; // global variable to store the current state of the braking system
+/*
+                                                        ___
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+*/
 
 char __buf[80];
 
@@ -124,6 +145,7 @@ void register_trap_handler(void *func)
 
 void timer_handler()
 {
+    static int val = 0;
     intr_count++;
     set_cycles(get_cycles() + 32768 * 0.1);
     /* Task 2.3 Increment the interrupt counter variable*/
@@ -146,7 +168,6 @@ void timer_handler()
             break;
         case LED_FLASHING_RED:
             // Flashing red light
-            static int val = 0;
             val ^= 1; // Toggle between 0 and 1
             gpio_write(RED_LED, val ? ON : OFF); // Turn on/off the red LED
             break;
