@@ -93,7 +93,8 @@ while(1):
 		if count%4 == 0:
 			pass
 			#Your code here.
-
+			msg = "{:.2f}\n".format(deg)
+			ser1.write(msg.encode())' // since bytes() seems not to be optimal
 		
         
         
