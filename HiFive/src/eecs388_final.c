@@ -3,7 +3,21 @@
 #include <string.h>
 
 #include "eecs388_lib.h"
-
+/*
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                        \|/
+                                                         V
+*/
 /*****NOTE TO OURSELVES*****/
 void handle_trap(void); //compiler needs this declaration to compile the code, but the actual function is defined in eecs388_Lib.c
 //-------------------------
@@ -22,6 +36,21 @@ volatile float steering_angle = 0.0; // global variable to store the steering an
 // led_state is defined in eecs388_lib.h and is used to keep track of the current state of the braking system.
 extern volatile led_state braking_state;
 //--------------------------
+
+/*
+                                                        ___
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+                                                         |
+*/
 
 void auto_brake(int devid)
 {
@@ -96,9 +125,8 @@ void steering(int gpio, int pos)
     int pulse = 544 + ((2400 - 544) * pos) / 180;     //converts angle in to pulse
 
     gpio_write(gpio, ON);
-    delay_us(pulse);
+    delay_usec(pulse);
     gpio_write(gpio, OFF);
-    delay_us(20000 - pulse);
 
 }
 
