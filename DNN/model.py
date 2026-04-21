@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 from __future__ import division
 
-import tensorflow as tf
+#import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 def weight_variable(name, shape):
-    return tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+    #return tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
+    return tf.get_variable(name, shape=shape, initializer=tf.glorot_uniform_initializer())
 
 def bias_variable(shape):
     initial = tf.constant(0.1, shape=shape)

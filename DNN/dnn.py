@@ -2,7 +2,10 @@
 from __future__ import division
 
 # Imports
-import tensorflow as tf
+#import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
 model = __import__("model")
 import cv2
 import sys
@@ -12,7 +15,7 @@ import math
 import numpy as np
 import serial
 
-ser1 = serial.Serial("/dev/ttyAMA1", 115200)
+ser1 = serial.Serial("/dev/ttyAMA2", 115200)
 
 # Radian <-> Degree conversion functions
 def deg2rad(deg):
@@ -91,10 +94,11 @@ while(1):
 		# prediction from the model. This is so that
 		# the HiFive can run the other functions in between
 		if count%4 == 0:
+			deg = int(deg)
+			msg = f"{deg}\n"
+			ser1.write(bytes(msg, 'utf-8'))
 			pass
-			#Your code here.
-
-		
+			#Your code up here.
         
         
 		pred_end   = time.time()
